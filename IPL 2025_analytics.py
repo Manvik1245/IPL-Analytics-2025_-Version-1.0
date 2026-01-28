@@ -225,7 +225,7 @@ def most_impactful_bowl(team):
     plt.show()
     
 def most_three_wickets():
-    count_wickets= df_bowler.loc[df_bowler.wickets_taken>=3].groupby("bowler")['wickets_taken'].count().sort_values(ascending= False)
+    count_wickets= df_bowler.loc[(df_bowler.wickets_taken>=3)].groupby("bowler")['wickets_taken'].count().sort_values(ascending= False)
     print("The bowlers with the most 3 or more wicket hauls in an innings are:- ")
     print(count_wickets.head(5))
 
@@ -245,6 +245,49 @@ def bowling_impact():
     print("The bowlers with the highest bowling impact in this IPL are:- ")
     print(stats['impact_score'].sort_values(ascending= False).head(5))
     
+# General team_stats
+def highest_team_totals():
+    most_runs= df_bat.groupby(["match_id", "player_team"])['runs_scored'].sum().sort_values(ascending= False)
+    print("Most runs scored in an innings are:- ")
+    print(most_runs.head())
+    
+def lowest_team_totals():
+    less_runs= df_bat.groupby(["match_id", "player_team"])['runs_scored'].sum().sort_values(ascending= True)
+    print("Least runs scored in an innings are:- ")
+    print(less_runs.head())
+    
+def team_winning_percentage():
+    winning= df_matches['match_winner'].value_counts()
+    percentage= ((winning/len(df_matches))*100)
+    print("Teams with the highest percentage wins in this season are:- ")
+    print(percentage.sort_values(ascending= False).head())
+
+def team_balance():
+    batting_runs= df_bat[df_bat.batting_position<= 7].groupby("player_team")['runs_scored'].sum()
+    batting_dismissal= df_bat[df_bat.batting_position<= 7].groupby("player_team")['dismissal_type'].count()
+    batting_ability= batting_runs/batting_dismissal
+    bowling_runs= df_bowler.groupby("player_team")['runs_conceded'].sum()
+    bowling_wickets= df_bowler.groupby("player_team")['wickets_taken'].sum()
+    bowling_ability= bowling_runs/bowling_wickets
+    print("The balance of each times are:-")
+    impact= batting_ability/bowling_ability
+    def classify(row):
+        if row>=1:
+            return("Batting Heavy")
+        elif row>=0.7 and row<=1:
+            return("Balanced")
+        else:
+            return("Bowling Heavy")
+    result= pd.DataFrame({'Impact': impact})
+    result["Type"]= result['Impact'].apply(classify)
+    print(result.sort_values('Impact',ascending= False))
+
+def most_homewins():
+    home_wins= df_matches[df_matches['team1']== df_matches['match_winner']]
+    most= home_wins['team1'].value_counts()
+    print("Teams with the most home wins are:- ")
+    print(most.sort_values(ascending=False))
+
 # For predictions 
 def highest_run_getters():
     y= df_bat.groupby('striker').runs_scored.sum()
@@ -258,9 +301,7 @@ def highest_run_getters():
     result= pd.DataFrame({'striker': val_X.index, 'runs_scored' : predict})
     result= result.round().sort_values(by='runs_scored', ascending=False)
     print(result.head())
- 
-highest_run_getters()
-    
+
 def highest_wicket_takers():
      y= df_bowler.groupby('bowler').wickets_taken.sum()
      features= ["runs_conceded", 'dots_bowled', 'fours_conceded', 'sixes_conceded', 'economy_rate']
@@ -273,7 +314,6 @@ def highest_wicket_takers():
      result= pd.DataFrame({'bowler': val_X.index, 'wickets_taken' : predict})
      result= result.round().sort_values(by='wickets_taken', ascending=False)
      print(result.head())
-highest_wicket_takers()
 
 
 def main_menu():
@@ -291,7 +331,7 @@ def main_menu():
     print("9.  Effective Scoring Index")
     print("10. Impact in Wins (Team Share %)")
     print("11. Team Batting Distribution (Chart)")
-    print(("27. Balls Per Dismisal"))
+    print("27. Balls Per Dismisal")
     
     print("\n--- ALL-ROUNDER ANALYSIS ---")
     print("12. Elite All-Rounders List")
@@ -312,6 +352,13 @@ def main_menu():
     print("25. Dot Ball Kings")
     print("26. Bowling Impact Score")
     
+    print("\n--- TEAM ANALYSIS ---")
+    print("30. Highest Team Totals (Innings)")
+    print("31. Lowest Team Totals (Innings)")
+    print("32. Team Winning Percentage")
+    print("33. Team Balance (Bat/Bowl)")
+    print("34. Most Home Wins")
+    
     print("\n--- MACHINE LEARNING PREDICTIONS ---")
     print("28. Predict Highest Run Scorers (ML)")
     print("29. Predict Highest Wicket Takers (ML)")
@@ -321,49 +368,7 @@ def main_menu():
     
     while True:
         choice = input("👉 Enter Option Number: ")
-
-        if choice == '1': strike_rate()
-        elif choice == '2': accumalators()
-        elif choice == '3': 
-            name = input("Enter player name (e.g. Kohli, Will Jacks): ")
-            dismissals(name)
-        elif choice == '4': most_boundaries()
-        elif choice == '5': most_runs_boundaries()
-        elif choice == '6': conversion_to_fifty()
-        elif choice == '7': most_runs_scored()
-        elif choice == '8': batting_impact()
-        elif choice == '9': effective_scoring()
-        elif choice == '10': impact_in_wins()
-        elif choice == '11': 
-            team = input("Enter Team Code (e.g. RCB, MI, CSK): ")
-            most_impactful_bat(team)
-        elif choice == "27": 
-            print("Batsmen with the highest balls per dismisal are:- ")
-            print(BPD())
-        elif choice == '12': allrounder()
-        elif choice == '13': all_rounder_impact()
-        elif choice == '14': impact_points()
-        elif choice == '15': most_num()
-        elif choice == '16': most_runs_conceeded()
-        elif choice == '17': most_boundaries_bowling()
-        elif choice == '18': boundaries_runs()
-        elif choice == '19': lowest_economy()
-        elif choice == '20': strike_rate_bowling()
-        elif choice == '21': impact_in_bowling()
-        elif choice == '22': 
-            team = input("Enter Team Code (e.g. RCB, MI, CSK): ")
-            most_impactful_bowl(team)
-        elif choice == '23': most_three_wickets()
-        elif choice == '24': most_runs_given()
-        elif choice == '25': most_dot_balls()
-        elif choice == '26': bowling_impact()
-        elif choice == '28': highest_run_getters()
-        elif choice == '29': highest_wicket_takers()
-        elif choice == '0':
-            print("Exiting... Have a great day!")
+        if choice== "0":
             break
-        else:
-            print("❌ Invalid Selection. Please try again.")
-
 main_menu()
 
