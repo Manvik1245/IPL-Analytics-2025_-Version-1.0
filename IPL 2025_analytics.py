@@ -368,7 +368,80 @@ def main_menu():
     
     while True:
         choice = input("👉 Enter Option Number: ")
-        if choice== "0":
+        if choice == "0":
             break
+        elif choice == "1":
+            strike_rate()
+        elif choice == "2":
+            accumalators()
+        elif choice == "3":
+            name = input("Enter player name: ")
+            dismissals(name)
+        elif choice == "4":
+            most_boundaries()
+        elif choice == "5":
+            most_runs_boundaries()
+        elif choice == "6":
+            conversion_to_fifty()
+        elif choice == "7":
+            most_runs_scored()
+        elif choice == "8":
+            batting_impact()
+        elif choice == "9":
+            effective_scoring()
+        elif choice == "10":
+            impact_in_wins()
+        elif choice == "11":
+            team = input("Enter team name: ")
+            most_impactful_bat(team)
+        elif choice == "12":
+            print(allrounder())
+        elif choice == "13":
+            all_rounder_impact()
+        elif choice == "14":
+            impact_points()
+        elif choice == "15":
+            most_num()
+        elif choice == "16":
+            most_runs_conceeded()
+        elif choice == "17":
+            most_boundaries_bowling()
+        elif choice == "18":
+            boundaries_runs()
+        elif choice == "19":
+            lowest_economy()
+        elif choice == "20":
+            strike_rate_bowling()
+        elif choice == "21":
+            impact_in_bowling()
+        elif choice == "22":
+            team = input("Enter team name: ")
+            most_impactful_bowl(team)
+        elif choice == "23":
+            most_three_wickets()
+        elif choice == "24":
+            most_runs_given()
+        elif choice == "25":
+            most_dot_balls()
+        elif choice == "26":
+            bowling_impact()
+        elif choice == "27":
+            print(BPD())
+        elif choice == "28":
+            highest_run_getters()
+        elif choice == "29":
+            highest_wicket_takers()
+        elif choice == "30":
+            highest_team_totals()
+        elif choice == "31":
+            lowest_team_totals()
+        elif choice == "32":
+            team_winning_percentage()
+        elif choice == "33":
+            team_balance()
+        elif choice == "34":
+            most_homewins()
+        else:
+            print("Invalid option. Please try again.")
 main_menu()
 
