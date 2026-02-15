@@ -3,7 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os 
 from sklearn.ensemble import RandomForestRegressor  # type: ignore
+from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split # type: ignore
+from sklearn.preprocessing import OrdinalEncoder
 base_dir = os.path.dirname(os.path.abspath(__file__))
 data_bat= os.path.join(base_dir,'ipl_batsman.csv')
 data_matches= os.path.join(base_dir, 'matches.csv')
@@ -294,10 +296,10 @@ def highest_run_getters():
     features= ['batting_position', 'strike_rate', 'fours', 'sixes','singles', 'doubles']
     X= df_bat.groupby('striker')[features].sum()
     train_X, val_X, train_y, val_y = train_test_split(X, y, random_state = 0)
-    forest_model= RandomForestRegressor(random_state=1)
-    forest_model.fit(train_X, train_y)
+    XG_model=  XGBRegressor(random_state=1)
+    XG_model.fit(train_X, train_y)
     print("The highest run scorers in the next IPL are:- ")
-    predict= forest_model.predict(val_X)
+    predict= XG_model.predict(val_X)
     result= pd.DataFrame({'striker': val_X.index, 'runs_scored' : predict})
     result= result.round().sort_values(by='runs_scored', ascending=False)
     print(result.head())
@@ -307,15 +309,51 @@ def highest_wicket_takers():
      features= ["runs_conceded", 'dots_bowled', 'fours_conceded', 'sixes_conceded', 'economy_rate']
      X= df_bowler.groupby('bowler')[features].sum()
      train_X, val_X, train_y, val_y = train_test_split(X, y, random_state = 0)
-     forest= RandomForestRegressor(random_state=1)
-     forest.fit(train_X,train_y)
+     XGB_model= XGBRegressor(random_state=1)
+     XGB_model.fit(train_X,train_y)
      print("The highest wicket takers in next year's IPL are:-")
-     predict= forest.predict(val_X)
+     predict= XGB_model.predict(val_X)
      result= pd.DataFrame({'bowler': val_X.index, 'wickets_taken' : predict})
      result= result.round().sort_values(by='wickets_taken', ascending=False)
      print(result.head())
 
+def most_matches_won():
+    features= ["venue", "stage", "margin"]
+    X= df_matches.groupby(["team1"])[features].count()
+    X1= df_matches.groupby(["team2"])[features].count()
+    y= df_matches.groupby(["team1"]).match_winner.count()
+    y1= df_matches.groupby(["team2"]).match_winner.count()
+    train_X, val_X, train_y, val_y = train_test_split(X,y, random_state = 0)
+    train_X1, val_X1, train_y1, val_y1= train_test_split(X1,y1, random_state = 0)
+    forest= RandomForestRegressor(random_state=1)
+    forest1= RandomForestRegressor(random_state=1)
+    forest.fit(train_X, train_y)
+    forest1.fit(train_X1,train_y1)
+    predict= forest.predict(X)
+    predict1= forest1.predict(X1)
+    print("Teams that will win the most matches in next year's IPL are:-")
+    result= pd.DataFrame({'team': X.index, 'matches_won' : predict})
+    result1= pd.DataFrame({'team': X1.index, 'matches_won' : predict1})
+    combine= pd.concat([result, result1])
+    final= combine.groupby("team")["matches_won"].sum().reset_index()
+    final= final.round().sort_values(by="matches_won",ascending=False)
+    print(final)
 
+def most_predicted_homewins():
+    home= df_matches[df_matches['team1']== df_matches['match_winner']]
+    y= home.groupby("team1").size()
+    features= ["stage", "margin"]
+    X= df_matches.groupby(["team1"])[features].count()
+    X,y= X.align(y, join="inner", axis=0)
+    train_X, val_X, train_y, val_y = train_test_split(X,y, random_state = 0)
+    forest= RandomForestRegressor(random_state=1)
+    forest.fit(train_X, train_y)
+    predict= forest.predict(X)
+    result= pd.DataFrame({'team': X.index, 'home_matches_won' : predict})
+    print("Teams with the most home wins next season are:- ")
+    result=result.round().sort_values(by="home_matches_won", ascending=False)
+    print(result)
+    
 def main_menu():
     print("      🏏 IPL 2025 ANALYTICS ENGINE v1.0      ")
     print("="*50)
@@ -362,6 +400,8 @@ def main_menu():
     print("\n--- MACHINE LEARNING PREDICTIONS ---")
     print("28. Predict Highest Run Scorers (ML)")
     print("29. Predict Highest Wicket Takers (ML)")
+    print("35. Predict Most Matches Won (ML)")
+    print("36. Predict Most Home Wins (ML)")
     
     print("\n0.  Exit")
     print("="*50)
@@ -441,6 +481,10 @@ def main_menu():
             team_balance()
         elif choice == "34":
             most_homewins()
+        elif choice == "35":
+            most_matches_won()
+        elif choice == "36":
+            most_predicted_homewins()
         else:
             print("Invalid option. Please try again.")
 main_menu()
