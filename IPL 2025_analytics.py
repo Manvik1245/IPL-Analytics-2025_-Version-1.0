@@ -5,7 +5,8 @@ import os
 from sklearn.ensemble import RandomForestRegressor  # type: ignore
 from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split # type: ignore
-from sklearn.preprocessing import OrdinalEncoder
+from sklearn.preprocessing import OrdinalEncoder, StandardScaler
+from sklearn.cluster import KMeans
 base_dir = os.path.dirname(os.path.abspath(__file__))
 data_bat= os.path.join(base_dir,'ipl_batsman.csv')
 data_matches= os.path.join(base_dir, 'matches.csv')
@@ -354,6 +355,93 @@ def most_predicted_homewins():
     result=result.round().sort_values(by="home_matches_won", ascending=False)
     print(result)
     
+
+def auction_choices():
+    bat_stats= df_bat.loc[df_bat.match_id>3].groupby("striker").agg({'runs_scored':'sum', 'balls_faced':'sum', 'fours':"sum", "sixes":"sum", "strike_rate":"mean"}).reset_index()
+    bowl_stats= df_bowler.loc[df_bowler.match_id>3].groupby("bowler").agg({'wickets_taken':"sum", "runs_conceded": "sum", 'economy_rate':'mean', "dots_bowled":"sum"}).reset_index()
+    
+    allrounder_stats = bat_stats.merge(bowl_stats, left_on="striker", right_on="bowler", how="inner")
+    
+    scaler= StandardScaler()
+    features= ['runs_scored', 'strike_rate','fours','sixes']
+    feature_bowl= ["runs_conceded", "dots_bowled","wickets_taken", "economy_rate"]
+    allrounder_feature= ['runs_scored', 'strike_rate', 'wickets_taken', 'economy_rate']
+    
+    bat_scale= scaler.fit_transform(bat_stats[features])
+    bowl_scale= scaler.fit_transform(bowl_stats[feature_bowl])
+    allround_scale= scaler.fit_transform(allrounder_stats[allrounder_feature])
+    
+    kmeans= KMeans(n_clusters=3, random_state= 45, n_init= 10)
+    bat_stats["clusters"]= kmeans.fit_predict(bat_scale)
+    bowl_stats["clusters"]=kmeans.fit_predict(bowl_scale)
+    allrounder_stats["clusters"]=kmeans.fit_predict(allround_scale)
+    
+    cluster_bat= bat_stats.groupby("clusters")[features].mean()
+    cluster_bowl= bowl_stats.groupby("clusters")[feature_bowl].mean()
+    cluster_allround= allrounder_stats.groupby("clusters")[allrounder_feature].mean()
+    
+    cluster_bat["combined_bat"]= cluster_bat["runs_scored"]+ (cluster_bat["strike_rate"]*1.5)
+    cluster_bowl["combined_bowl"]= cluster_bowl["wickets_taken"] - (cluster_bowl["economy_rate"]*1.5)
+    cluster_allround["combined_all"]= cluster_allround["runs_scored"] + (cluster_allround["wickets_taken"]*20) - (cluster_allround["economy_rate"]*5)
+    
+    bat_sorted = cluster_bat["combined_bat"].sort_values(ascending=False).index.tolist()
+    bowl_sorted = cluster_bowl["combined_bowl"].sort_values(ascending=False).index.tolist()
+    allround_sorted= cluster_allround["combined_all"].sort_values(ascending=False).index.tolist()
+    
+    print("\n" + "="*50)
+    print("BATSMAN CLUSTERS")
+    print("="*50)
+    for cluster_id, row in cluster_bat.iterrows():
+        if cluster_id == bat_sorted[0]:
+            label = "PREMIUM PICK"
+        elif cluster_id == bat_sorted[1]:
+            label = "VALUE PICK"
+        else:
+            label = "BUDGET PICK"
+        
+        print(f"\n{label}")
+        print("-"*40)
+        players = bat_stats[bat_stats['clusters'] == cluster_id][["striker", "runs_scored", "strike_rate"]].sort_values(by=['runs_scored', 'strike_rate'], ascending=False).head()
+        print(players.to_string(index=False))
+    
+    print("\n" + "="*50)
+    print("BOWLER CLUSTERS")
+    print("="*50)
+    for cluster_id, row in cluster_bowl.iterrows():
+        if cluster_id == bowl_sorted[0]:
+            label = "STRIKE BOWLER"
+        elif cluster_id == bowl_sorted[1]:
+            label = "IMPACT BOWLER"
+        else:
+            label = "ECONOMY BOWLER"
+        
+        print(f"\n{label}")
+        print("-"*40)
+        players = bowl_stats[bowl_stats['clusters'] == cluster_id][["bowler", "wickets_taken", "economy_rate"]].sort_values(by=['wickets_taken'], ascending=False).head()
+        print(players.to_string(index=False))
+    
+    print("\n" + "="*50)
+    print("ALL ROUNDER CLUSTERS")
+    print("="*50)
+    for cluster_id, row in cluster_allround.iterrows():
+        if cluster_id == allround_sorted[0]:
+            label = "ELITE ALL-ROUNDER"
+        elif cluster_id == allround_sorted[1]:
+            label = "IMPACT ALL-ROUNDER"
+        else:
+            label = "UTILITY ALL-ROUNDER"
+        
+        print(f"\n{label}")
+        print("-"*40)
+        players = allrounder_stats[allrounder_stats['clusters'] == cluster_id][["striker", "runs_scored", "wickets_taken", "economy_rate"]].sort_values(by=['runs_scored', 'wickets_taken'], ascending=False).head()
+        print(players.to_string(index=False))
+        
+        
+    return(bat_stats, bowl_stats, allrounder_stats)
+
+
+    
+    
 def main_menu():
     print("      🏏 IPL 2025 ANALYTICS ENGINE v1.0      ")
     print("="*50)
@@ -402,6 +490,7 @@ def main_menu():
     print("29. Predict Highest Wicket Takers (ML)")
     print("35. Predict Most Matches Won (ML)")
     print("36. Predict Most Home Wins (ML)")
+    print("37. Get Auction Picks (ML)")
     
     print("\n0.  Exit")
     print("="*50)
@@ -485,6 +574,8 @@ def main_menu():
             most_matches_won()
         elif choice == "36":
             most_predicted_homewins()
+        elif choice== "37":
+            auction_choices()
         else:
             print("Invalid option. Please try again.")
 main_menu()
